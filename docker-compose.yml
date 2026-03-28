@@ -1,0 +1,62 @@
+configs:
+  pgadmin-servers:
+    content: |
+      {
+          "Servers": {
+              "1": {
+                  "Name": "Local PostgreSQL Container",
+                  "Group": "Servers",
+                  "Host": "postgres",
+                  "Port": 5432,
+                  "MaintenanceDB": "postgres",
+                  "Username": "postgres",
+                  "SavePassword": true,
+                  "PassFile": "config/pgpass"
+              }
+          }
+      }
+  pgadmin-pgpass:
+    content: |
+      postgres:5432:*:postgres:dbpass
+
+services:
+  postgres:
+    image: postgres:17
+    restart: always
+    container_name: postgres
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "dbpass"
+      POSTGRES_DB: "postgres"
+    volumes:
+      - ./db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "user@mail.com"
+      PGADMIN_DEFAULT_PASSWORD: "dbpass"
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - "5050:80"
+    configs:
+      - source: pgadmin-servers
+        target: /pgadmin4/servers.json
+        mode: 0444
+      - source: pgadmin-pgpass
+        target: /pgadmin4/config/pgpass
+        uid: "5050"
+        gid: "5050"
+        mode: 0400
+    volumes:
+      #- ./pgadmin_data:/var/lib/pgadmin
+      #- ./servers.json:/pgadmin4/servers.json:ro
+      #- ./.pgpass:/pgadmin4/.pgpass
+      - ./config.py:/pgadmin4/config.py
